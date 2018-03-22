@@ -1,0 +1,6 @@
+[submodule "common/oracle_javacard_sdks"]
+	path = common/oracle_javacard_sdks
+	url = https://github.com/martinpaljak/oracle_javacard_sdks
+[submodule "xmss/host/xmss-reference"]
+	path = xmss/host/xmss-reference
+	url = git@github.com:joostrijneveld/xmss-reference.git

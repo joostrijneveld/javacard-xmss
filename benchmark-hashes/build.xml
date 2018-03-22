@@ -1,0 +1,92 @@
+<project name="Hash" basedir=".">
+
+    <target name="tools">
+        <get src="https://github.com/martinpaljak/GlobalPlatformPro/releases/download/v0.3.10rc5/gp.jar" dest="." skipexisting="true"/>
+    </target>
+
+    <!--
+        requires ant-javacard.jar, as available on
+        https://github.com/martinpaljak/ant-javacard/releases/download/v1.8/ant-javacard.jar
+
+        This cannot be downloaded using <get>, since it's needed at define-time for the taskdef
+    -->
+    <taskdef name="javacard" classname="pro.javacard.ant.JavaCard" classpath="ant-javacard.jar"/>
+
+    <!-- These are default keys that probably want to be replaced -->
+    <property name="keyenc" value="404142434445464748494A4B4C4D4E4F"/>
+    <property name="keymac" value="404142434445464748494A4B4C4D4E4F"/>
+    <property name="keydek" value="404142434445464748494A4B4C4D4E4F"/>
+    <property name="pid" value="584D535343415244"/>
+    <property name="aid" value="48415348"/>
+    <property name="gp" value="gp.jar"/>
+    <property name="ant-javacard" value="ant-javacard.jar"/>
+    <property name="applet" value="Hash"/>
+
+    <target name="build-222" depends="tools">
+        <javacard>
+            <cap jckit="../common/oracle_javacard_sdks/jc222_kit" aid="${pid}" output="${applet}.cap" sources="smartcard/applet">
+                <applet class="applet.${applet}" aid="${pid}${aid}"/>
+            </cap>
+        </javacard>
+    </target>
+
+    <target name="build-304" depends="tools">
+        <javacard>
+            <cap jckit="../common/oracle_javacard_sdks/jc304_kit" aid="${pid}" output="${applet}.cap" sources="smartcard/applet">
+                <applet class="applet.${applet}" aid="${pid}${aid}"/>
+            </cap>
+        </javacard>
+    </target>
+
+    <target name="list">
+        <java jar="${gp}" fork="true">
+            <arg value="--key-dek" />
+            <arg value="${keydek}" />
+            <arg value="--key-enc" />
+            <arg value="${keyenc}" />
+            <arg value="--key-mac" />
+            <arg value="${keymac}" />
+            <arg value="--list" />
+        </java>
+    </target>
+
+    <target name="install">
+        <java jar="${gp}" fork="true">
+            <arg value="--key-dek" />
+            <arg value="${keydek}" />
+            <arg value="--key-enc" />
+            <arg value="${keyenc}" />
+            <arg value="--key-mac" />
+            <arg value="${keymac}" />
+            <arg value="--install" />
+            <arg value="${applet}.cap" />
+        </java>
+    </target>
+
+    <target name="delete" depends="tools">
+        <java jar="${gp}" fork="true">
+            <arg value="--key-dek" />
+            <arg value="${keydek}" />
+            <arg value="--key-enc" />
+            <arg value="${keyenc}" />
+            <arg value="--key-mac" />
+            <arg value="${keymac}" />
+            <arg value="--delete" />
+            <arg value="${pid}" />
+        </java>
+    </target>
+
+    <target name="install-222" depends="delete,clean,build-222,install"/>
+
+    <target name="install-304" depends="delete,clean,build-304,install"/>
+
+    <target name="clean" depends="tools">
+        <delete file="${applet}.cap"/>
+    </target>
+
+    <target name="distclean" depends="clean">
+        <delete file="${gp}"/>
+        <delete file="${ant-javacard}"/>
+    </target>
+
+</project>
