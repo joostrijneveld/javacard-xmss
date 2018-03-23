@@ -908,8 +908,6 @@ public class XMSS {
 
         Util.arrayCopyNonAtomic(tmp, o_tmp, secretKey, (short)0, (short)64);
         /* Note that the root is skipped and will be computed on the card */
-        Util.arrayFillNonAtomic(publicKey, (short)0, (short)64, (byte)0); // DEBUG
-        Util.arrayFillNonAtomic(nodes, (short)0, (short)(N * D * (1 << (H / D))), (byte)0); // DEBUG
         Util.arrayCopyNonAtomic(tmp, (short)(o_tmp + 64), publicKey, (short)32, (short)32);
     }
 
