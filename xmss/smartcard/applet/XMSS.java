@@ -54,10 +54,12 @@ public class XMSS {
     /* If initialized externally, track how many bytes are received */
     private short nodeBytesReceived = 0;
     private short WOTSBytesReceived = 0;
-    /* This is a potential problem: depending on the threat model, the secret
-       key should not be stored as a bytearray, but in a way that guarantees
-       side-channel countermeasures. There is no generic solution available. */
-    private final byte[] secretKey;  /* SKSEED + PRFKEY */
+
+    /* Java Card 3.0.5 introduces SensitiveArray, but that's not available
+       on Java Card 2. Instead, we rely on two AESKey objects and only use them
+       to extract the keys at runtime. */
+    private final AESKey secretSeed;  /* SKSEED */
+    private final AESKey secretPRFKey;  /* PRFKEY */
     private final byte[] publicKey;  /* ROOT + PUBSEED */
 
     /* This array stores all WOTS signatures currently in use.
@@ -101,8 +103,10 @@ public class XMSS {
            and only 'current' for the topmost layer. */
         nodes = new byte[(short)(N * (2*D - 1) * (1 << (H / D)))];
         WOTSSignatures = new byte[(short)(WOTS_LEN * N * (D - 1))];
-        secretKey = new byte[64];
         publicKey = new byte[64];
+
+        secretSeed = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_256, false);
+        secretPRFKey = (AESKey)KeyBuilder.buildKey(KeyBuilder.TYPE_AES, KeyBuilder.LENGTH_AES_256, false);
 
         signingRoot = JCSystem.makeTransientByteArray((short)32, JCSystem.CLEAR_ON_DESELECT);
         /* Invalidate the signing state; initialized upon key generation */
@@ -253,14 +257,18 @@ public class XMSS {
         WOTSChecksum(lengths, lengths, tmp, o_tmp);
     }
 
-    /* Computes an OTS seed; writes [31x 0, DOMAINSEP] to tmp as side-effect */
+    /* Computes an OTS seed; zeroes out 32 bytes in tmp as a side effect */
     private void WOTSGetSeed(byte[] seed, short o_seed,
                              byte[] addr, short o_addr,
                              byte[] tmp, short o_tmp) {
         Util.arrayFillNonAtomic(tmp, o_tmp, (short)31, (byte)0);
         tmp[(short)(o_tmp + 31)] = DOMAINSEP_PRF;
         md.update(tmp, o_tmp, N);
-        md.update(secretKey, (short)0, (short)32);
+        secretSeed.getKey(tmp, o_tmp);
+        md.update(tmp, o_tmp, (short)32);
+
+        /* Zero out the secret seed, just in case. */
+        Util.arrayFillNonAtomic(tmp, o_tmp, (short)32, (byte)0);
 
         /* Zero out CHAIN, HASH and KEY_AND_MASK fields */
         Util.arrayFillNonAtomic(addr, (short)(o_addr + ADDR_CHAIN_LSBYTE-3),
@@ -506,8 +514,11 @@ public class XMSS {
         tmp[(short)(o_tmp + 31)] = DOMAINSEP_PRF;
         md.reset();
         md.update(tmp, o_tmp, (short)32);
-        md.update(secretKey, (short)32, N);
-        /* Since the first 31 bytes are zero, this sets tmp to [28x zero, idx] */
+        secretPRFKey.getKey(tmp, o_tmp);
+        md.update(tmp, o_tmp, (short)32);
+        /* Zero out the PRF key */
+        Util.arrayFillNonAtomic(tmp, o_tmp, (short)32, (byte)0);
+        /* Since tmp is at all-zero, this sets it to [28x zero, idx] */
         indexToBytes(tmp, (short)(o_tmp + 28), signingIdxHigh, signingIdxLow);
         md.doFinal(tmp, o_tmp, (short)32, buffer, (short)4);
 
@@ -886,7 +897,12 @@ public class XMSS {
 
     /* Generates a fresh keypair on the card, and initializes for signing */
     public void generateKeypair(APDU apdu, byte[] tmp, short o_tmp, RandomData rng) {
-        rng.generateData(secretKey, (short)0, (short)64);  /* SKSEED + SKPRF */
+        rng.generateData(tmp, o_tmp, (short)64);  /* SKSEED + SKPRF */
+        secretSeed.setKey(tmp, o_tmp);
+        secretPRFKey.setKey(tmp, (short)(o_tmp + 32));
+        /* Zero out the secret key, just in case. */
+        Util.arrayFillNonAtomic(tmp, o_tmp, (short)64, (byte)0);
+
         rng.generateData(publicKey, (short)32, (short)32);  /* PUBSEED */
 
         /* Precompute leafs for all first trees */
@@ -906,7 +922,11 @@ public class XMSS {
 
         storeAPDU(apdu, tmp, o_tmp);
 
-        Util.arrayCopyNonAtomic(tmp, o_tmp, secretKey, (short)0, (short)64);
+        secretSeed.setKey(tmp, o_tmp);
+        secretPRFKey.setKey(tmp, (short)(o_tmp + 32));
+        /* Zero out the secret key, just in case. */
+        Util.arrayFillNonAtomic(tmp, o_tmp, (short)64, (byte)0);
+
         /* Note that the root is skipped and will be computed on the card */
         Util.arrayCopyNonAtomic(tmp, (short)(o_tmp + 64), publicKey, (short)32, (short)32);
     }
