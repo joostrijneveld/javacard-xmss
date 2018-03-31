@@ -89,6 +89,7 @@ int main() {
     for (int i = 0; i < 2; i++) {
         printf("[%.3f] Signing on the card (#%d)..\n", elapsed(t0), i);
         smartcard_xmss_sign(&params, sm, &smlen, m, XMSS_MLEN);
+        printf("[%.3f] .. done!\n", elapsed(t0));
 
         if (xmssmt_core_sign_open(&params, mout, &mlen, sm, smlen, pk)) {
             printf("[%.3f] Verification failed!\n", elapsed(t0));
