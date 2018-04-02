@@ -1,6 +1,6 @@
 ## Java Card XMSS
 
-This repository contains an implementation of XMSS (as described in the [Internet Draft _"XMSS: Extended Hash-Based Signatures"_](https://datatracker.ietf.org/doc/draft-irtf-cfrg-xmss-hash-based-signatures/)) for the Java Card platform. Check back soon for a reference to the paper describing this implementation and the motivating research.
+This repository contains an implementation of XMSS<sup>MT</sup> (as described in the [Internet Draft _"XMSS: Extended Hash-Based Signatures"_](https://datatracker.ietf.org/doc/draft-irtf-cfrg-xmss-hash-based-signatures/)) for the Java Card platform. Check back soon for a reference to the paper describing this implementation and the motivating research.
 
 Note that this is a proof-of-concept implementation. Do **NOT** simply use this in production environments without thorough review. This implementation is still under construction, and may be subject to change.
 
